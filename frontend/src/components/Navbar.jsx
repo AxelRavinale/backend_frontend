@@ -11,20 +11,28 @@ const Navbar = () => {
   };
 
   return (
-    <nav>
+    <nav style={{ display: 'flex', gap: '15px', padding: '10px', borderBottom: '1px solid #ccc' }}>
       <Link to="/inicio">Inicio</Link>
+
       {!user && (
         <>
           <Link to="/inicio-sesion">Login</Link>
           <Link to="/registro">Registro</Link>
         </>
       )}
+
       {user && (
         <>
           <Link to="/productos">Productos</Link>
           <Link to="/usuarios">Usuarios</Link>
-          {user.rol === 'admin' && <span>Panel Admin</span>}
-          <button onClick={logout}>Logout</button>
+
+          {user.rol === 'admin' && <span style={{ marginLeft: '10px', fontWeight: 'bold', color: 'red' }}>Panel Admin</span>}
+
+          <span style={{ marginLeft: '10px' }}>
+            Rol: <strong>{user.rol}</strong>
+          </span>
+
+          <button onClick={logout} style={{ marginLeft: 'auto' }}>Logout</button>
         </>
       )}
     </nav>
@@ -32,3 +40,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

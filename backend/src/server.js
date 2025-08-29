@@ -32,7 +32,7 @@ res.status(err.status || 500).json({ message: err.message || 'Error' });
 });
 
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3001;
 
 
 (async () => {

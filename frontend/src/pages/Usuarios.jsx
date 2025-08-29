@@ -1,25 +1,38 @@
 import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
 import { Toast } from 'primereact/toast';
+import api from '../services/api';
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
   const user = JSON.parse(localStorage.getItem('user'));
   const toastRef = useRef(null);
 
+  // ✅ Aquí va el useEffect para cargar los usuarios al montar el componente
   useEffect(() => {
-    axios.get('/api/usuarios', { headers: { Authorization: `Bearer ${user.token}` } })
+    api.get('/usuarios')
       .then(res => setUsuarios(res.data))
-      .catch(err => toastRef.current.show({ severity: 'error', summary: 'Error', detail: err.response.data.message }));
-  }, [user.token]);
+      .catch(err =>
+        toastRef.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: err.response?.data?.message || 'Error al cargar usuarios'
+        })
+      );
+  }, []);
 
   const cambiarRol = (id, nuevoRol) => {
-    axios.put(`/api/usuarios/${id}/rol`, { rol: nuevoRol }, { headers: { Authorization: `Bearer ${user.token}` } })
+    api.put(`/usuarios/${id}/rol`, { rol: nuevoRol })
       .then(() => {
         setUsuarios(usuarios.map(u => u.id === id ? { ...u, rol: nuevoRol } : u));
         toastRef.current.show({ severity: 'success', summary: 'Éxito', detail: 'Rol actualizado' });
       })
-      .catch(err => toastRef.current.show({ severity: 'error', summary: 'Error', detail: err.response.data.message }));
+      .catch(err =>
+        toastRef.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: err.response?.data?.message || 'Error al actualizar rol'
+        })
+      );
   };
 
   return (

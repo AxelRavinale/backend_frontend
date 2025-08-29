@@ -14,12 +14,20 @@ function App() {
     <Router>
       <Navbar />
       <Routes>
+        {/* Ruta raíz y /inicio van al mismo Home */}
+        <Route path="/" element={<Home />} />
         <Route path="/inicio" element={<Home />} />
+
+        {/* Rutas públicas */}
         <Route path="/inicio-sesion" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/registro" element={<PublicRoute><Registro /></PublicRoute>} />
+
+        {/* Rutas privadas */}
         <Route path="/productos/*" element={<PrivateRoute><Productos /></PrivateRoute>} />
         <Route path="/usuarios/*" element={<PrivateRoute><Usuarios /></PrivateRoute>} />
-        <Route path="*" element={<Navigate to="/inicio" />} />
+
+        {/* Cualquier ruta desconocida redirige al Home */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
