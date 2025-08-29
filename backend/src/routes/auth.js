@@ -1,80 +1,95 @@
-require('dotenv').config();
-const { Router } = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const Usuario = require('../models/Usuario');
+// backend/src/routes/auth.js
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const { User } = require("../models"); // Asegurate que tengas tu modelo User definido en models
+require("dotenv").config();
 
-const router = Router();
+const router = express.Router();
 
+// ---------------------
 // Registro de usuario
-router.post('/registro', async (req, res) => {
+// ---------------------
+router.post("/register", async (req, res) => {
   try {
-    const { nombre, email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    // Validaciones básicas
-    if (!nombre || !email || !password) {
-      return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Todos los campos son requeridos" });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: 'Email inválido' });
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
+      return res.status(400).json({ message: "El usuario ya existe" });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
-    }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Verificar si el email ya existe
-    const existing = await Usuario.findOne({ where: { email } });
-    if (existing) {
-      return res.status(409).json({ message: 'Email ya registrado' });
-    }
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
 
-    // Hashear la contraseña
-    const hash = await bcrypt.hash(password, 10);
-
-    // Crear el usuario
-    const user = await Usuario.create({ nombre, email, password_hash: hash });
-
-    // Generar token JWT
-    const payload = { id: user.id, email: user.email, rol: user.rol };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
-
-    res.json({ token, user: payload });
-  } catch (e) {
-    console.error('Error en /registro:', e);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    res.status(201).json({
+      message: "Usuario registrado con éxito",
+      user: { id: newUser.id, name: newUser.name, email: newUser.email },
+    });
+  } catch (error) {
+    console.error("Error en /register:", error);
+    res.status(500).json({ message: "Error en el servidor" });
   }
 });
 
+// ---------------------
 // Login de usuario
-router.post('/login', async (req, res) => {
+// ---------------------
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validaciones
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email y contraseña son obligatorios' });
+      return res.status(400).json({ message: "Email y contraseña son requeridos" });
     }
 
-    const user = await Usuario.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(401).json({ message: 'Credenciales inválidas' });
+      return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) {
-      return res.status(401).json({ message: 'Credenciales inválidas' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
-    const payload = { id: user.id, email: user.email, rol: user.rol };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-    res.json({ token, user: payload });
-  } catch (e) {
-    console.error('Error en /login:', e);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    res.json({ message: "Login exitoso", token });
+  } catch (error) {
+    console.error("Error en /login:", error);
+    res.status(500).json({ message: "Error en el servidor" });
+  }
+});
+
+// ---------------------
+// Ruta protegida de prueba
+// ---------------------
+router.get("/profile", (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader) return res.status(403).json({ message: "Token requerido" });
+
+    const token = authHeader.split(" ")[1];
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) return res.status(403).json({ message: "Token inválido o expirado" });
+      res.json({ message: "Acceso permitido", user });
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error en el servidor" });
   }
 });
 
